@@ -1,8 +1,11 @@
-name: CI/CD Pipeline
+name: docker image build
+
 on:
     push:
         branches: [ main ]
 jobs:
-    build:
+    build: 
         runs-on: ubuntu-latest
         steps:
+            - name: Check out the repository
+            
