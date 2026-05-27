@@ -1,28 +1,36 @@
 import { useState } from 'react'
 import '../styles/login.css'
 import api from '../Api/Api.js'
+import { useNavigate } from 'react-router-dom'
 const Login = () => {
     const [login, setLogin] = useState({
         email: "",
         password:""
     })
+    const navigate = useNavigate();
     
 
-    const handleSubmit =async (e)=>{
-        e.preventDefault()
-       if(login.email!=="" || login.password!==""){
-        return alert("Enter input ");
-       }
-       try{
-
-        const res = await api.post("/auth/login", login);
-        console.log(res.data);
-       }catch(err){
-        console.error(err);
-       }
-        
-    
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        if (login.email === "" || login.password === "") {
+            return alert('Please enter email and password');
+        }
+        try {
+            const res = await api.post('/auth/login', login);
+            const { token, user } = res.data;
+            if (token) {
+                localStorage.setItem('token', token);
+                localStorage.setItem('user', JSON.stringify(user));
+                api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+                navigate('/summary');
+            }
+        } catch (err) {
+            console.error(err);
+            const message = err?.response?.data?.message || 'Login failed';
+            alert(message);
+        }
     }
+
     const handleChange = (e)=>{
         setLogin({
             ...login,
@@ -73,6 +81,6 @@ const Login = () => {
             </div>
         </div>
   )
-}
+};
 
 export default Login

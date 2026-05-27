@@ -38,6 +38,8 @@ export const signup = async (req, res) => {
             password: hashedPassword,
         });
 
+        await newUser.save();
+
         const token = generateToken(newUser._id);
 
         return res.status(201).json({
@@ -58,5 +60,41 @@ export const signup = async (req, res) => {
             message: "Internal server error",
             error: err.message,
         });
+    }
+};
+
+// Login controller
+export const login = async (req, res) => {
+    try {
+        const { email, password } = req.body;
+
+        if (!email || !password) {
+            return res.status(400).json({ success: false, message: 'Email and password are required' });
+        }
+
+        const user = await User.findOne({ email });
+        if (!user) {
+            return res.status(401).json({ success: false, message: 'Invalid credentials' });
+        }
+
+        const isMatch = await bcrypt.compare(password, user.password);
+        if (!isMatch) {
+            return res.status(401).json({ success: false, message: 'Invalid credentials' });
+        }
+
+        const token = generateToken(user._id);
+
+        return res.status(200).json({
+            success: true,
+            message: 'Login successful',
+            token,
+            user: {
+                id: user.id,
+                name: user.name,
+                email: user.email,
+            },
+        });
+    } catch (err) {
+        return res.status(500).json({ success: false, message: 'Internal server error', error: err.message });
     }
 };

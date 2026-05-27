@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import '../styles/signup.css'
 import api from '../Api/Api';
+import { useNavigate } from 'react-router-dom'
 const Signup = () => {
     const [signup, setsignup ] = useState({
         name: "",
@@ -17,14 +18,26 @@ const Signup = () => {
         })
     }
     
-    const handleSubmit =async (e) =>{
+    const navigate = useNavigate();
+
+    const handleSubmit = async (e) => {
         e.preventDefault();
-        try{
-            const res = await api.post("/auth/signup",signup);
-            console.log(res.data);
-        }catch(err){
+        if (signup.password !== repassword) {
+            return alert('Passwords do not match');
+        }
+        try {
+            const res = await api.post('/auth/signup', signup);
+            const { token, user } = res.data;
+            if (token) {
+                localStorage.setItem('token', token);
+                localStorage.setItem('user', JSON.stringify(user));
+                api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+                navigate('/list');
+            }
+        } catch (err) {
             console.error(err);
-            
+            const message = err?.response?.data?.message || 'Signup failed';
+            alert(message);
         }
     }
   return (
