@@ -76,6 +76,11 @@ docker-compose down
 - Middleware: [backend/src/Middleware](backend/src/Middleware) contains `authMiddleware.js` and other helpers.
 - Config: [backend/src/config/db.js](backend/src/config/db.js) and [backend/src/config/redisClient.js](backend/src/config/redisClient.js)
 
+Sessions & logout
+- The backend stores active JWTs in Redis (key format `token:<jwt>`). On login/signup the server saves the token with a TTL matching the JWT expiry. Logout removes the token from Redis so the token becomes invalid immediately.
+
+When adding or inspecting authentication flows, check `backend/src/controllers/authController.js` and `backend/src/Middleware/authMiddleware.js` — the middleware validates the JWT and verifies the token exists in Redis.
+
 Common backend scripts (package.json):
 
 ```bash
