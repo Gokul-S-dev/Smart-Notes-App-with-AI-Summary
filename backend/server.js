@@ -10,7 +10,7 @@ import userRoutes from './src/routes/userRoutes.js'
 const PORT = process.env.PORT || 3000
 const app = express()
 dotenv.config();
-// connectRedis();
+connectRedis();
 connectDB();
 app.use(cors());
 app.use(express.json())

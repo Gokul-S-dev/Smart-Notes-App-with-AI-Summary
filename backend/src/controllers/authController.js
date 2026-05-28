@@ -1,6 +1,7 @@
 import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
 import User from '../models/User.js'
+import redisClient from '../config/redisClient.js'
 
 const generateToken = (userId) => {
     return jwt.sign(
@@ -41,6 +42,20 @@ export const signup = async (req, res) => {
         await newUser.save();
 
         const token = generateToken(newUser._id);
+
+        // Store token in Redis with TTL matching JWT expiry
+        try {
+            const decoded = jwt.decode(token);
+            const exp = decoded?.exp;
+            if (exp) {
+                const ttl = exp - Math.floor(Date.now() / 1000);
+                if (ttl > 0) {
+                    await redisClient.setEx(`token:${token}`, ttl, String(newUser._id));
+                }
+            }
+        } catch (err) {
+            console.error('Failed to store token in Redis:', err.message || err);
+        }
 
         return res.status(201).json({
             success: true,
@@ -84,6 +99,20 @@ export const login = async (req, res) => {
 
         const token = generateToken(user._id);
 
+        // Store token in Redis with TTL matching JWT expiry
+        try {
+            const decoded = jwt.decode(token);
+            const exp = decoded?.exp;
+            if (exp) {
+                const ttl = exp - Math.floor(Date.now() / 1000);
+                if (ttl > 0) {
+                    await redisClient.setEx(`token:${token}`, ttl, String(user._id));
+                }
+            }
+        } catch (err) {
+            console.error('Failed to store token in Redis:', err.message || err);
+        }
+
         return res.status(200).json({
             success: true,
             message: 'Login successful',
@@ -94,6 +123,35 @@ export const login = async (req, res) => {
                 email: user.email,
             },
         });
+    } catch (err) {
+        return res.status(500).json({ success: false, message: 'Internal server error', error: err.message });
+    }
+};
+
+// Logout controller — removes token from Redis so it becomes invalid
+export const logout = async (req, res) => {
+    try {
+        let token;
+        if (
+            req.headers.authorization &&
+            req.headers.authorization.startsWith('Bearer ')
+        ) {
+            token = req.headers.authorization.split(' ')[1];
+        }
+        // allow token in body for POST logout too
+        if (!token && req.body && req.body.token) token = req.body.token;
+
+        if (!token) {
+            return res.status(400).json({ success: false, message: 'Token required to logout' });
+        }
+
+        try {
+            await redisClient.del(`token:${token}`);
+        } catch (err) {
+            console.error('Failed to delete token from Redis:', err.message || err);
+        }
+
+        return res.status(200).json({ success: true, message: 'Logout successful' });
     } catch (err) {
         return res.status(500).json({ success: false, message: 'Internal server error', error: err.message });
     }
