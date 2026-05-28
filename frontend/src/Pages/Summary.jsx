@@ -1,7 +1,23 @@
 import{useState} from 'react'
 import '../styles/summary.css'
+import api from '../Api/Api'
+import { useNavigate } from 'react-router-dom'
 
 const Summary = () => {
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    try {
+      // call backend logout to invalidate token in Redis
+      await api.post('/auth/logout');
+    } catch (err) {
+      console.warn('Logout request failed:', err?.message || err);
+    }
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    delete api.defaults.headers.common['Authorization'];
+    navigate('/login');
+  }
 
     const [text,setext]=useState("");
 
@@ -27,6 +43,7 @@ const Summary = () => {
           <div className="summary-actions">
             <button className="btn btn-primary" type="submit">Generate Summary</button>
             <button className="btn btn-ghost" type="button" onClick={()=>setext('')}>Clear</button>
+            <button className="btn btn-logout" type="button" onClick={handleLogout}>Logout</button>
           </div>
         </form>
       </div>
